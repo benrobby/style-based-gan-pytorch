@@ -3,6 +3,8 @@ from io import BytesIO
 import lmdb
 from PIL import Image
 from torch.utils.data import Dataset
+import pandas
+import torch
 
 
 class MultiResolutionDataset(Dataset):
@@ -25,6 +27,10 @@ class MultiResolutionDataset(Dataset):
         self.resolution = resolution
         self.transform = transform
 
+        mask = slice(None)
+        attr = pandas.read_csv(("./celeba/list_attr_celeba.txt"), delim_whitespace=True, header=1)
+        self.attr = torch.as_tensor(attr[mask].values)
+
     def __len__(self):
         return self.length
 
@@ -37,4 +43,4 @@ class MultiResolutionDataset(Dataset):
         img = Image.open(buffer)
         img = self.transform(img)
 
-        return img
+        return (img, self.attr[index, :])

@@ -36,7 +36,6 @@ def sample_data(dataset, batch_size, image_size=4):
 
     return loader
 
-
 def adjust_lr(optimizer, lr):
     for group in optimizer.param_groups:
         mult = group.get('mult', 1)
@@ -68,6 +67,24 @@ def train(args, dataset, generator, discriminator):
 
     max_step = int(math.log2(args.max_size)) - 2
     final_progress = False
+
+    sample_feature_tensors = [
+        # first celeba entry
+                torch.tensor([
+                        -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1,
+                        1, 1, -1, 1, -1, -1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, -1,
+                        1, -1, -1, 1, ], dtype=torch.float32).cuda(),
+                    # inverted
+        #         torch.tensor([
+                        1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1,
+                        -1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, -1, 1,
+                        -1, 1, 1, -1, ], dtype=torch.float32).cuda(),
+                    # inverted, but made unattractive, no glasses, and young
+        #         torch.tensor([
+                        1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, 1,
+                        -1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, -1, 1,
+                        -1, 1, 1, 1, ], dtype=torch.float32).cuda(),
+                ]
 
     for i in pbar:
         discriminator.zero_grad()
@@ -112,19 +129,23 @@ def train(args, dataset, generator, discriminator):
             adjust_lr(d_optimizer, args.lr.get(resolution, 0.001))
 
         try:
-            real_image = next(data_loader)
-
+            image_data = next(data_loader)
+            real_image = image_data[0]
+            real_image_labels = image_data[1]
         except (OSError, StopIteration):
             data_loader = iter(loader)
-            real_image = next(data_loader)
+            image_data = next(data_loader)
+            real_image = image_data[0]
+            real_image_labels = image_data[1]
 
         used_sample += real_image.shape[0]
 
         b_size = real_image.size(0)
         real_image = real_image.cuda()
+        real_image_labels = real_image_labels.type(torch.cuda.FloatTensor).cuda()
 
         if args.loss == 'wgan-gp':
-            real_predict = discriminator(real_image, step=step, alpha=alpha)
+            real_predict = discriminator(real_image, real_image_labels, step=step, alpha=alpha)
             real_predict = real_predict.mean() - 0.001 * (real_predict ** 2).mean()
             (-real_predict).backward()
 
@@ -159,8 +180,8 @@ def train(args, dataset, generator, discriminator):
             gen_in1 = gen_in1.squeeze(0)
             gen_in2 = gen_in2.squeeze(0)
 
-        fake_image = generator(gen_in1, step=step, alpha=alpha)
-        fake_predict = discriminator(fake_image, step=step, alpha=alpha)
+        fake_image = generator(gen_in1, real_image_labels, step=step, alpha=alpha)
+        fake_predict = discriminator(fake_image, real_image_labels, step=step, alpha=alpha)
 
         if args.loss == 'wgan-gp':
             fake_predict = fake_predict.mean()
@@ -169,7 +190,7 @@ def train(args, dataset, generator, discriminator):
             eps = torch.rand(b_size, 1, 1, 1).cuda()
             x_hat = eps * real_image.data + (1 - eps) * fake_image.data
             x_hat.requires_grad = True
-            hat_predict = discriminator(x_hat, step=step, alpha=alpha)
+            hat_predict = discriminator(x_hat, real_image_labels, step=step, alpha=alpha)
             grad_x_hat = grad(
                 outputs=hat_predict.sum(), inputs=x_hat, create_graph=True
             )[0]
@@ -196,9 +217,9 @@ def train(args, dataset, generator, discriminator):
             requires_grad(generator, True)
             requires_grad(discriminator, False)
 
-            fake_image = generator(gen_in2, step=step, alpha=alpha)
+            fake_image = generator(gen_in2, real_image_labels, step=step, alpha=alpha)
 
-            predict = discriminator(fake_image, step=step, alpha=alpha)
+            predict = discriminator(fake_image, real_image_labels, step=step, alpha=alpha)
 
             if args.loss == 'wgan-gp':
                 loss = -predict.mean()
@@ -222,17 +243,17 @@ def train(args, dataset, generator, discriminator):
             gen_i, gen_j = args.gen_sample.get(resolution, (10, 5))
 
             with torch.no_grad():
-                for _ in range(gen_i):
+                for feature_tensor in sample_feature_tensors:
                     images.append(
                         g_running(
-                            torch.randn(gen_j, code_size).cuda(), step=step, alpha=alpha
+                            torch.randn(gen_j, code_size).cuda(), feature_tensor.repeat(10, 1), step=step, alpha=alpha
                         ).data.cpu()
                     )
 
             utils.save_image(
                 torch.cat(images, 0),
                 f'sample/{str(i + 1).zfill(6)}.png',
-                nrow=gen_i,
+                nrow=len(sample_feature_tensors),
                 normalize=True,
                 range=(-1, 1),
             )

@@ -449,21 +449,25 @@ class Generator(nn.Module):
 
 
 class StyledGenerator(nn.Module):
-    def __init__(self, code_dim=512, n_mlp=8):
+    def __init__(self, code_dim=512, n_mlp=8, n_labels=40):
         super().__init__()
 
         self.generator = Generator(code_dim)
 
         layers = [PixelNorm()]
-        for i in range(n_mlp):
-            layers.append(EqualLinear(code_dim, code_dim))
+        for i in range(n_mlp - 1):
+            layers.append(EqualLinear(code_dim + n_labels, code_dim + n_labels))
             layers.append(nn.LeakyReLU(0.2))
+
+        layers.append(nn.Linear(code_dim + n_labels, code_dim))
+        layers.append(nn.LeakyReLU(0.2))
 
         self.style = nn.Sequential(*layers)
 
     def forward(
         self,
         input,
+        in_labels,
         noise=None,
         step=0,
         alpha=-1,
@@ -474,9 +478,11 @@ class StyledGenerator(nn.Module):
         styles = []
         if type(input) not in (list, tuple):
             input = [input]
+            in_labels = [in_labels]
 
-        for i in input:
-            styles.append(self.style(i))
+        for i, label in zip(input, in_labels):
+            concatenated = torch.cat((i, labels), dim=1)
+            styles.append(self.style(concatenated))
 
         batch = input[0].shape[0]
 
@@ -507,6 +513,8 @@ class Discriminator(nn.Module):
     def __init__(self, fused=True, from_rgb_activate=False):
         super().__init__()
 
+        n_labels = 40
+
         self.progression = nn.ModuleList(
             [
                 ConvBlock(16, 32, 3, 1, downsample=True, fused=fused),  # 512
@@ -517,7 +525,7 @@ class Discriminator(nn.Module):
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 16
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 8
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 4
-                ConvBlock(513, 512, 3, 1, 4, 0),
+                ConvBlock(513, 512 + n_labels, 3, 1, 4, 0),
             ]
         )
 
@@ -546,9 +554,9 @@ class Discriminator(nn.Module):
 
         self.n_layer = len(self.progression)
 
-        self.linear = EqualLinear(512, 1)
+        self.linear = EqualLinear(512 + 1, 1)
 
-    def forward(self, input, step=0, alpha=-1):
+    def forward(self, input, labels, step=0, alpha=-1):
         for i in range(step, -1, -1):
             index = self.n_layer - i - 1
 
@@ -572,6 +580,12 @@ class Discriminator(nn.Module):
 
         out = out.squeeze(2).squeeze(2)
         # print(input.size(), out.size(), step)
-        out = self.linear(out)
+
+        labels = labels.reshape(-1, nlabels)
+        label_normalizer = 1.0 / nlabels
+
+        appliedLabels = torch.cat((out[:,:512],label_normalizer * torch.sum(out[:,512:] * labels, dim = 1, keepdim = True)), dim = 1)
+
+        out = self.linear(appliedLabels)
 
         return out
