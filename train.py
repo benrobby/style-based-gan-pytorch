@@ -70,31 +70,11 @@ def train(args, dataset, generator, discriminator):
 
     sample_feature_tensors = [
               # first celeba entry
-                torch.tensor([
-                            -1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, 
-                                    1,  1, -1,  1, -1, -1,  1, -1, -1,  1, -1, -1, -1,  1,  1, -1,  1, -1, 
-                                            1, -1, -1,  1,], dtype=torch.float32).cuda(),
-                  # second celeba entry
-                    torch.tensor([
-                                -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1,
-                                        -1,  1, -1,  1, -1, -1,  1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1,
-                                                -1, -1, -1,  1,], dtype=torch.float32).cuda(),
-                      # second celeba entry, but made attractive, and given glasses
-                        torch.tensor([
-                                    -1, -1, 1,  1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, 1, -1, -1,
-                                            -1,  1, -1,  1, -1, -1,  1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1,
-                                                    -1, -1, -1,  1,], dtype=torch.float32).cuda(),
-                          # third celeba entry (should be male)
-                            torch.tensor([
-                                        -1, -1, -1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1,
-                                                -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1, -1, -1, -1, -1,  1, -1, -1,
-                                                        -1 ,-1 ,-1, 1], dtype=torch.float32).cuda(),
-                              # third celeba entry made attractive and smiling
-                                torch.tensor([
-                                            -1, -1, 1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1,
-                                                    -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1, -1, -1, 1, -1,  1, -1, -1,
-                                                            -1 ,-1 ,-1, 1], dtype=torch.float32).cuda(),
-                                ]
+                torch.tensor([-1, 1, -1, -1, -1, -1, -1, 1, 1, 1], dtype=torch.float32).cuda(),
+                torch.tensor([-1, -1, 1, -1, -1, -1, -1, 1, 1, 1], dtype=torch.float32).cuda(),
+                torch.tensor([-1, -1, -1, 1, 1, -1, 1, -1, 1, -1], dtype=torch.float32).cuda(),
+                
+                ]
     for i in pbar:
         discriminator.zero_grad()
 
@@ -145,7 +125,7 @@ def train(args, dataset, generator, discriminator):
             data_loader = iter(loader)
             image_data = next(data_loader)
             real_image = image_data[0]
-            real_image_labels = image_data[1]
+            real_image_labels = image_data[1][[4, 8, 9, 11,15,17, 20,22, 24,31,39]]
 
         used_sample += real_image.shape[0]
 
