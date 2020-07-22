@@ -478,10 +478,12 @@ class StyledGenerator(nn.Module):
         styles = []
         if type(input) not in (list, tuple):
             input = [input]
+        if type(in_labels) not in (list, tuple):
             in_labels = [in_labels]
 
         for i, label in zip(input, in_labels):
-            concatenated = torch.cat((i, labels), dim=1)
+
+            concatenated = torch.cat((i, label), dim=1)
             styles.append(self.style(concatenated))
 
         batch = input[0].shape[0]
@@ -513,7 +515,8 @@ class Discriminator(nn.Module):
     def __init__(self, fused=True, from_rgb_activate=False):
         super().__init__()
 
-        n_labels = 40
+
+        self.n_labels = 40
 
         self.progression = nn.ModuleList(
             [
@@ -525,7 +528,7 @@ class Discriminator(nn.Module):
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 16
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 8
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 4
-                ConvBlock(513, 512 + n_labels, 3, 1, 4, 0),
+                ConvBlock(513, 512 + self.n_labels, 3, 1, 4, 0),
             ]
         )
 
@@ -581,8 +584,8 @@ class Discriminator(nn.Module):
         out = out.squeeze(2).squeeze(2)
         # print(input.size(), out.size(), step)
 
-        labels = labels.reshape(-1, nlabels)
-        label_normalizer = 1.0 / nlabels
+        labels = labels.reshape(-1, self.n_labels)
+        label_normalizer = 1.0 / self.n_labels
 
         appliedLabels = torch.cat((out[:,:512],label_normalizer * torch.sum(out[:,512:] * labels, dim = 1, keepdim = True)), dim = 1)
 

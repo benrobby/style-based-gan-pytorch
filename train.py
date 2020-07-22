@@ -69,23 +69,32 @@ def train(args, dataset, generator, discriminator):
     final_progress = False
 
     sample_feature_tensors = [
-        # first celeba entry
+              # first celeba entry
                 torch.tensor([
-                        -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1,
-                        1, 1, -1, 1, -1, -1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, -1,
-                        1, -1, -1, 1, ], dtype=torch.float32).cuda(),
-                    # inverted
-        #         torch.tensor([
-                        1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1,
-                        -1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, -1, 1,
-                        -1, 1, 1, -1, ], dtype=torch.float32).cuda(),
-                    # inverted, but made unattractive, no glasses, and young
-        #         torch.tensor([
-                        1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, 1,
-                        -1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, -1, 1,
-                        -1, 1, 1, 1, ], dtype=torch.float32).cuda(),
-                ]
-
+                            -1,  1,  1, -1, -1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, 
+                                    1,  1, -1,  1, -1, -1,  1, -1, -1,  1, -1, -1, -1,  1,  1, -1,  1, -1, 
+                                            1, -1, -1,  1,], dtype=torch.float32).cuda(),
+                  # second celeba entry
+                    torch.tensor([
+                                -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1,
+                                        -1,  1, -1,  1, -1, -1,  1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1,
+                                                -1, -1, -1,  1,], dtype=torch.float32).cuda(),
+                      # second celeba entry, but made attractive, and given glasses
+                        torch.tensor([
+                                    -1, -1, 1,  1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, 1, -1, -1,
+                                            -1,  1, -1,  1, -1, -1,  1, -1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1,
+                                                    -1, -1, -1,  1,], dtype=torch.float32).cuda(),
+                          # third celeba entry (should be male)
+                            torch.tensor([
+                                        -1, -1, -1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1,
+                                                -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1, -1, -1, -1, -1,  1, -1, -1,
+                                                        -1 ,-1 ,-1, 1], dtype=torch.float32).cuda(),
+                              # third celeba entry made attractive and smiling
+                                torch.tensor([
+                                            -1, -1, 1, -1, -1, -1,  1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1,
+                                                    -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1, -1, -1, 1, -1,  1, -1, -1,
+                                                            -1 ,-1 ,-1, 1], dtype=torch.float32).cuda(),
+                                ]
     for i in pbar:
         discriminator.zero_grad()
 
@@ -143,7 +152,6 @@ def train(args, dataset, generator, discriminator):
         b_size = real_image.size(0)
         real_image = real_image.cuda()
         real_image_labels = real_image_labels.type(torch.cuda.FloatTensor).cuda()
-
         if args.loss == 'wgan-gp':
             real_predict = discriminator(real_image, real_image_labels, step=step, alpha=alpha)
             real_predict = real_predict.mean() - 0.001 * (real_predict ** 2).mean()
@@ -179,7 +187,6 @@ def train(args, dataset, generator, discriminator):
             )
             gen_in1 = gen_in1.squeeze(0)
             gen_in2 = gen_in2.squeeze(0)
-
         fake_image = generator(gen_in1, real_image_labels, step=step, alpha=alpha)
         fake_predict = discriminator(fake_image, real_image_labels, step=step, alpha=alpha)
 
@@ -246,7 +253,7 @@ def train(args, dataset, generator, discriminator):
                 for feature_tensor in sample_feature_tensors:
                     images.append(
                         g_running(
-                            torch.randn(gen_j, code_size).cuda(), feature_tensor.repeat(10, 1), step=step, alpha=alpha
+                            torch.randn(10, code_size).cuda(), feature_tensor.repeat(10, 1), step=step, alpha=alpha
                         ).data.cpu()
                     )
 
