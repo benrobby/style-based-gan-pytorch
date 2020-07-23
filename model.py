@@ -584,10 +584,19 @@ class Discriminator(nn.Module):
         # print(input.size(), out.size(), step)
 
         labels = labels.reshape(-1, self.n_labels)
-        label_normalizer = 1.0 / self.n_labels
 
-        appliedLabels = torch.cat((out[:,:512],label_normalizer * torch.sum(out[:,512:] * labels, dim = 1, keepdim = True)), dim = 1)
-    
-        out = self.linear(appliedLabels)
+        attributes = (labels + 1) / 2
+        attribute_indices = attributes.nonzero(as_tuple=True)[1]
+        attribute_offsets = torch.cat((torch.zeros(1, dtype=torch.long), attributes.sum(dim=1)))
+        attribute_offsets = attribute_offsets.cumsum(dim=-1).narrow(0, 0, attribute_offsets.shape[0] - 1)
+
+        embedded = self.attribute_embedder(attribute_indices, attribute_offsets)  # batch_size x num_channels
+
+        projection = (embedded * out).sum(dim=1)  # batch_size
+
+        #label_normalizer = 1.0 / self.n_labels
+        #appliedLabels = torch.cat((out[:,:512],label_normalizer * torch.sum(out[:,512:] * labels, dim = 1, keepdim = True)), dim = 1)
+
+        out = self.linear(out) + projection
 
         return out
