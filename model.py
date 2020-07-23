@@ -482,7 +482,6 @@ class StyledGenerator(nn.Module):
             in_labels = [in_labels]
 
         for i, label in zip(input, in_labels):
-
             concatenated = torch.cat((i, label), dim=1)
             styles.append(self.style(concatenated))
 
