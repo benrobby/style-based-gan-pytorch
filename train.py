@@ -128,7 +128,6 @@ def train(args, dataset, generator, discriminator):
             real_image_labels = image_data[1]
         real_image_labels = real_image_labels[:,[4, 8, 9, 11,15,17, 20,22, 24,31]]
 
-        print(real_image_labels.shape)
         used_sample += real_image.shape[0]
 
         b_size = real_image.size(0)
@@ -199,7 +198,6 @@ def train(args, dataset, generator, discriminator):
                 disc_loss_val = (real_predict + fake_predict).item()
 
         d_optimizer.step()
-        break
         if (i + 1) % n_critic == 0:
             generator.zero_grad()
 
