@@ -527,7 +527,7 @@ class Discriminator(nn.Module):
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 16
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 8
                 ConvBlock(512, 512, 3, 1, downsample=True),  # 4
-                ConvBlock(513, 512 + self.n_labels, 3, 1, 4, 0),
+                ConvBlock(513, 512 , 3, 1, 4, 0),
             ]
         )
 
@@ -555,8 +555,8 @@ class Discriminator(nn.Module):
         # self.blur = Blur()
 
         self.n_layer = len(self.progression)
-
-        self.linear = EqualLinear(512 + 1, 1)
+        self.attribute_embedder = torch.nn.EmbeddingBag(self.n_labels, 512, max_norm=1, mode="sum")
+        self.linear = EqualLinear(512 , 1)
 
     def forward(self, input, labels, step=0, alpha=-1):
         for i in range(step, -1, -1):
@@ -587,8 +587,9 @@ class Discriminator(nn.Module):
 
         attributes = (labels + 1) / 2
         attribute_indices = attributes.nonzero(as_tuple=True)[1]
-        attribute_offsets = torch.cat((torch.zeros(1, dtype=torch.long), attributes.sum(dim=1)))
+        attribute_offsets = torch.cat((torch.zeros(1, dtype=torch.float32).cuda(), attributes.sum(dim=1)))
         attribute_offsets = attribute_offsets.cumsum(dim=-1).narrow(0, 0, attribute_offsets.shape[0] - 1)
+        attribute_offsets = attribute_offsets.long()
 
         embedded = self.attribute_embedder(attribute_indices, attribute_offsets)  # batch_size x num_channels
 
