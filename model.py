@@ -449,7 +449,7 @@ class Generator(nn.Module):
 
 
 class StyledGenerator(nn.Module):
-    def __init__(self, code_dim=512, n_mlp=8, n_labels=40):
+    def __init__(self, code_dim=512, n_mlp=8, n_labels=10):
         super().__init__()
 
         self.generator = Generator(code_dim)
@@ -515,7 +515,7 @@ class Discriminator(nn.Module):
         super().__init__()
 
 
-        self.n_labels = 40
+        self.n_labels = 10
 
         self.progression = nn.ModuleList(
             [
@@ -587,7 +587,7 @@ class Discriminator(nn.Module):
         label_normalizer = 1.0 / self.n_labels
 
         appliedLabels = torch.cat((out[:,:512],label_normalizer * torch.sum(out[:,512:] * labels, dim = 1, keepdim = True)), dim = 1)
-
+    
         out = self.linear(appliedLabels)
 
         return out
