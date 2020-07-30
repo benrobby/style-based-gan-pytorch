@@ -1,5 +1,20 @@
 # Conditional Style-Based GAN in PyTorch
 
+Sample after < 24hours of training time on a single GPU (therefore only 32x32 and mediocre quality):
+![Sample of the conditional model trained on CelebaHQ.](demo.png)
+
+Each row contains ten images generated with the same of ten random noise inputs.
+There are seven rows, in each we try to generate images with the following respective properties:
+- black hair, no beard, smiling
+- brown hair, no beard, smiling
+- blond hair, no beard,
+- blond hair, no beard, eyeglasses
+- male, brown hair, no beard
+- male, gray hair, no beard, eyeglasses
+- male, bald, mustache, smiling
+
+# Original Readme
+
 ##### Update (2019/09/01)
 
 I found bugs in the implementation thanks to @adambielski and @TropComplique! (https://github.com/rosinality/style-based-gan-pytorch/issues/33, https://github.com/rosinality/style-based-gan-pytorch/issues/34) I have fixed this and updated checkpoints
