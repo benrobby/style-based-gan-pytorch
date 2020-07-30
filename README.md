@@ -1,6 +1,6 @@
 # Conditional Style-Based GAN in PyTorch
 
-Sample after < 24hours of training time on a single GPU (therefore only 32x32 and mediocre quality):
+Sample after less than 24hours of training time on a single GPU (therefore only 32x32 and mediocre quality):
 ![Sample of the conditional model trained on CelebaHQ.](demo.png)
 
 Each row contains ten images generated with the same of ten random noise inputs.
