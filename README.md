@@ -1,4 +1,4 @@
-# Style-Based GAN in PyTorch
+# Conditional Style-Based GAN in PyTorch
 
 ##### Update (2019/09/01)
 
