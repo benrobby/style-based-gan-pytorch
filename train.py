@@ -69,12 +69,22 @@ def train(args, dataset, generator, discriminator):
     final_progress = False
 
     sample_feature_tensors = [
-              # first celeba entry
-                torch.tensor([-1, 1, -1, -1, -1, -1, -1, 1, 1, 1], dtype=torch.float32).cuda(),
-                torch.tensor([-1, -1, 1, -1, -1, -1, -1, 1, 1, 1], dtype=torch.float32).cuda(),
-                torch.tensor([-1, -1, -1, 1, 1, -1, 1, -1, 1, -1], dtype=torch.float32).cuda(),
-                
-                ]
+        # black hair, no beard, smiling
+        torch.tensor([-1,  1, -1, -1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # brown hair, no beard, smiling
+        torch.tensor([-1, -1, -1,  1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # blond hair, no beard,
+        torch.tensor([-1, -1,  1, -1, -1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # blond hair, no beard, eyeglasses
+        torch.tensor([-1, -1,  1, -1,  1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # male, brown hair, no beard
+        torch.tensor([-1, -1, -1,  1, -1, -1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # male, gray hair, no beard, eyeglasses
+        torch.tensor([-1, -1, -1, -1,  1,  1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+        # male, bald, mustache, smiling
+        torch.tensor([ 1, -1, -1, -1, -1, -1,  1,  1, -1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+    ]
+
     for i in pbar:
         discriminator.zero_grad()
 
@@ -265,7 +275,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Progressive Growing of GANs')
 
-    parser.add_argument('path', type=str, help='path of specified dataset', default='/')
+    parser.add_argument('path', type=str, help='path of specified dataset')
     parser.add_argument(
         '--phase',
         type=int,
@@ -327,6 +337,54 @@ if __name__ == '__main__':
         g_optimizer.load_state_dict(ckpt['g_optimizer'])
         d_optimizer.load_state_dict(ckpt['d_optimizer'])
 
+        # real_image_labels[:,[4, 8, 9, 11,15,17, 20,22, 24, 31]]
+        # Bald, Black_Hair, Blond_Hair, Brown_Hair, Eyeglasses, Gray_Hair, Male, Mustache, No_Beard, Smiling
+
+        # 0: bald, 1: black_hair, 2: blond_hair, 3: brown_hair, 4: eyeglasses, 5: gray_hair, 6: male, 7: mustache, 8: no_beard, 9: smiling
+        filtered_sample_feature_tensors = [
+            # black hair, no beard, smiling
+            torch.tensor([-1,  1, -1, -1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # brown hair, no beard, smiling
+            torch.tensor([-1, -1, -1,  1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # blond hair, no beard,
+            torch.tensor([-1, -1,  1, -1, -1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # blond hair, no beard, eyeglasses
+            torch.tensor([-1, -1,  1, -1,  1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # male, brown hair, no beard
+            torch.tensor([-1, -1, -1,  1, -1, -1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # male, gray hair, no beard, eyeglasses
+            torch.tensor([-1, -1, -1, -1,  1,  1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
+            # male, bald, mustache, smiling
+            torch.tensor([ 1, -1, -1, -1, -1, -1,  1,  1, -1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
+        ]
+
+        latent_size = 512
+        step = 3            # 32x32
+        alpha = 1
+
+        images = []
+        with torch.no_grad():
+            rand_vals = torch.randn(10, latent_size).cuda()
+            for feature_tensor in filtered_sample_feature_tensors:
+                copy = rand_vals.clone()
+                images.append(
+                    generator(
+                        copy,
+                        feature_tensor,
+                        step=step,
+                        alpha=alpha,
+                    ).data.cpu()
+                )
+
+        utils.save_image(
+            torch.cat(images, 0),
+            f'custom_sample.png',
+            nrow=10,
+            normalize=True,
+            range=(-1, 1),
+        )
+
+
     transform = transforms.Compose(
         [
             transforms.RandomHorizontalFlip(),
@@ -335,7 +393,7 @@ if __name__ == '__main__':
         ]
     )
 
-    # dataset = MultiResolutionDataset(args.path, transform)
+    dataset = MultiResolutionDataset(args.path, transform)
 
     if args.sched:
         args.lr = {128: 0.0015, 256: 0.002, 512: 0.003, 1024: 0.003}
@@ -349,51 +407,4 @@ if __name__ == '__main__':
 
     args.batch_default = 32
 
-    # real_image_labels[:,[4, 8, 9, 11,15,17, 20,22, 24, 31]]
-    # Bald, Black_Hair, Blond_Hair, Brown_Hair, Eyeglasses, Gray_Hair, Male, Mustache, No_Beard, Smiling
-
-    # 0: bald, 1: black_hair, 2: blond_hair, 3: brown_hair, 4: eyeglasses, 5: gray_hair, 6: male, 7: mustache, 8: no_beard, 9: smiling
-    filtered_sample_feature_tensors = [
-        # black hair, no beard, smiling
-        torch.tensor([-1,  1, -1, -1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # brown hair, no beard, smiling
-        torch.tensor([-1, -1, -1,  1, -1, -1, -1, -1,  1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # blond hair, no beard,
-        torch.tensor([-1, -1,  1, -1, -1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # blond hair, no beard, eyeglasses
-        torch.tensor([-1, -1,  1, -1,  1, -1, -1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # male, brown hair, no beard
-        torch.tensor([-1, -1, -1,  1, -1, -1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # male, gray hair, no beard, eyeglasses
-        torch.tensor([-1, -1, -1, -1,  1,  1,  1, -1,  1, -1], dtype=torch.float32).repeat(10, 1).cuda(),
-        # male, bald, mustache, smiling
-        torch.tensor([ 1, -1, -1, -1, -1, -1,  1,  1, -1,  1], dtype=torch.float32).repeat(10, 1).cuda(),
-    ]
-
-    latent_size = 512
-    step = 3            # 32x32
-    alpha = 1
-
-    images = []
-    with torch.no_grad():
-    rand_vals = torch.randn(10, latent_size).cuda()
-    for feature_tensor in filtered_sample_feature_tensors:
-        copy = rand_vals.clone()
-        images.append(
-            generator(
-                copy,
-                feature_tensor,
-                step=step,
-                alpha=alpha,
-            ).data.cpu()
-        )
-
-    utils.save_image(
-        torch.cat(images, 0),
-        f'custom_sample.png',
-        nrow=10,
-        normalize=True,
-        range=(-1, 1),
-    )
-
-    #train(args, dataset, generator, discriminator)
+    train(args, dataset, generator, discriminator)
