@@ -1,7 +1,7 @@
 # Conditional Style-Based GAN in PyTorch
 
 Sample after less than 24hours of training time on a single GPU (therefore only 32x32 and mediocre quality):
-![Sample of the conditional model trained on CelebaHQ.](demo.png)
+![Sample of the conditional model trained on CelebaHQ.](demo-conditional.png)
 
 Each row contains ten images generated with the same of ten random noise inputs.
 There are seven rows, in each we try to generate images with the following respective properties:
